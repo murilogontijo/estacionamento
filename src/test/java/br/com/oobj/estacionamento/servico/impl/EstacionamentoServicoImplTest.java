@@ -1,38 +1,94 @@
 package br.com.oobj.estacionamento.servico.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.Calendar;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import br.com.oobj.estacionamento.dao.EstacionamentoDao;
+import br.com.oobj.estacionamento.dao.EstacionamentoDAO;
 import br.com.oobj.estacionamento.modelo.TipoVeiculo;
 import br.com.oobj.estacionamento.modelo.Veiculo;
 import br.com.oobj.estacionamento.servico.EstacionamentoServico;
 
 @RunWith(SpringRunner.class)
 public class EstacionamentoServicoImplTest {
+	
+	private static final String PLACA = "AAA1234";
 
-	private EstacionamentoDao daoMock;
+	@MockBean
+	private EstacionamentoDAO daoMock;
+
 	private EstacionamentoServico sut;
 	private Veiculo veiculo;
 
 	@Before
 	public void setup() throws Exception {
-		sut = new EstacionamentoServicoImpl();
+		sut = new EstacionamentoServicoImpl(daoMock);
 		veiculo = new Veiculo();
+		veiculo.setPlaca(PLACA);
+		
+		Mockito.when(daoMock.buscarUltimoEstacionamentoPorPlaca(PLACA))
+			.thenReturn(veiculo);
 	}
-	
 	
 	@Test
 	public void deve_salvar_veiculo_no_processo_de_entrada_do_estacionamento() throws Exception {
 		sut.registrarEntrada(veiculo);
 		
+		Mockito.verify(daoMock).salvar(veiculo);
+	}
+	
+	@Test
+	public void deve_buscar_veiculo_antes_de_salvar_o_registro_de_saida() throws Exception {
+		// Preparação
+		String placa = PLACA;
+		veiculo.setPlaca(placa);
+		
+		// execução
+		sut.registrarSaida(veiculo);
+		
+		// verificação
+		Mockito.verify(daoMock).buscarUltimoEstacionamentoPorPlaca(placa);
+	}
+	
+	@Test
+	public void deve_buscar_ultima_interacao_do_veiculo_no_estacionamento_para_realizar_a_cobranca() throws Exception {
+		// Preparação
+		Veiculo veiculoDoBanco = new Veiculo();
+		veiculoDoBanco.setPlaca(PLACA);
+		veiculoDoBanco.setTipoVeiculo(TipoVeiculo.CARRO);
+		
+		Calendar dataHoraEntrada = Calendar.getInstance();
+		dataHoraEntrada.set(2018, Calendar.AUGUST, 6, 20, 0, 0);
+		veiculoDoBanco.setDataHoraEntrada(dataHoraEntrada.getTime());
+
+		Calendar dataHoraSaida = Calendar.getInstance();
+		dataHoraSaida.set(2018, Calendar.AUGUST, 6, 20, 25, 0);
+		veiculoDoBanco.setDataHoraSaida(dataHoraSaida.getTime());
+		
+		veiculo.setPlaca(PLACA);
+		
+		Mockito.when(daoMock.buscarUltimoEstacionamentoPorPlaca(PLACA))
+				.thenReturn(veiculoDoBanco);
+		
+		// Execuçao
+		Double valor = sut.calcularValor(veiculo);
+		
+		//verificaçao
+		assertEquals(2.0, valor, 0.0001);
+	}
+	
+	@Test
+	public void deve_salvar_registro_de_saida_do_veiculo() throws Exception {
+		sut.registrarSaida(veiculo);
+		
+		Mockito.verify(daoMock).salvar(veiculo);
 	}
 
 	@Test
@@ -152,9 +208,9 @@ public class EstacionamentoServicoImplTest {
 		// Verificação
 		assertEquals(0.0, valorEstacionamento, 0.0001);
 	}
-
+	
 	@Test
-	public void deve_tolerar_moto_ate_15_minutos_estacionada() throws Exception {
+	public void deve_tolerar_moto_com_menos_de_15_minutos_estacionada() throws Exception {
 		veiculo.setTipoVeiculo(TipoVeiculo.MOTO);
 
 		// Preparação
@@ -194,7 +250,7 @@ public class EstacionamentoServicoImplTest {
 	}
 	
 	@Test
-	public void deve_cobrar_14_reais_de_moto_estacionada_a_mais_de_5_horas_e_menos_6_horas() throws Exception {
+	public void deve_cobrar_14_reais_de_moto_estacionada_a_mais_de_5_horas_e_menos_de_6_horas() throws Exception {
 		veiculo.setTipoVeiculo(TipoVeiculo.MOTO);
 
 		// Preparação

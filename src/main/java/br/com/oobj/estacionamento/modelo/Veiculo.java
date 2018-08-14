@@ -3,12 +3,11 @@ package br.com.oobj.estacionamento.modelo;
 import java.util.Date;
 
 public class Veiculo {
-	
+
 	private String placa;
 	private Date dataHoraEntrada;
 	private Date dataHoraSaida;
 	private TipoVeiculo tipoVeiculo;
-	
 	public String getPlaca() {
 		return placa;
 	}
@@ -33,6 +32,5 @@ public class Veiculo {
 	public void setTipoVeiculo(TipoVeiculo tipoVeiculo) {
 		this.tipoVeiculo = tipoVeiculo;
 	}
-	
 	
 }

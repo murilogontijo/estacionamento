@@ -9,8 +9,4 @@ public interface EstacionamentoServico {
 	void registrarSaida(Veiculo veiculo);
 	
 	Double calcularValor(Veiculo veiculo);
-	
-	
-	
-	
 }
